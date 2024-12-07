@@ -3,7 +3,7 @@ import SuperAdmin from "@/src/models/superAdmin.model";
 import { authMiddleware } from "@/src/middleware/auth.middleware";
 import { NextResponse } from "next/server";
 
-export async function PATCH(request: Request) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectToDatabase();
 
@@ -15,11 +15,13 @@ export async function PATCH(request: Request) {
       );
     }
 
-    const { id: superAdminId, role: userRole, status } = authResult;
+    const { role: userRole, status } = authResult;
 
     if (status === 200 && (userRole === undefined || (userRole !== "admin" && userRole !== "manager"))) {
       return NextResponse.json({ message: "You are not authorized to perform this action." }, { status: 403 });
     }
+
+    const { id: superAdminId } = (await params);
 
     const { firstName, lastName, email, avatar } = await request.json();
 

@@ -3,7 +3,7 @@ import connectToDatabase from "@/src/config/db.config";
 import User from "@/src/models/user.model";
 import { authMiddleware } from "@/src/middleware/auth.middleware";
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
         await connectToDatabase();
 
@@ -18,7 +18,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
             return NextResponse.json({ message: "You are not authorized to perform this action.", success: false }, { status: 403 });
         }
 
-        const { id } = params;
+        const { id } = (await params);
 
         if (request.method !== "PATCH") {
             return NextResponse.json({ message: "Method not allowed", success: false }, { status: 405 });

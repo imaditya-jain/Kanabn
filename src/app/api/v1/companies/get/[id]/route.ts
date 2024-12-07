@@ -8,7 +8,7 @@ import Project from '@/src/models/project.model';
 import Task from '@/src/models/task.model';
 import SuperAdmin from '@/src/models/superAdmin.model';
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
         await connectToDatabase();
 
@@ -24,7 +24,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
         }
 
 
-        const { id } = params;
+        const { id } = (await params);
 
         if (!id) {
             return NextResponse.json({ message: "Missing or invalid ID", success: false }, { status: 400 });

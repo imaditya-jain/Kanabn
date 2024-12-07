@@ -6,7 +6,7 @@ import { NextResponse } from "next/server";
 
 export async function DELETE(
   request: Request,
-  context: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectToDatabase();
@@ -31,7 +31,7 @@ export async function DELETE(
         { status: 405 }
       );
 
-    const { id } = context.params;
+    const { id } = (await params);
 
     const superAdmin = await SuperAdmin.findById(id);
     if (!superAdmin) {
@@ -41,7 +41,7 @@ export async function DELETE(
       );
     }
 
-    await Company.deleteMany({ _id: { $in: superAdmin.companies } });
+    await Company.deleteMany({ _id: { $in: superAdmin.organization } });
 
     const response = await SuperAdmin.findByIdAndDelete(id);
 

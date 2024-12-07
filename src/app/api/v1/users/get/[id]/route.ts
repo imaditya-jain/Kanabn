@@ -3,7 +3,7 @@ import connectToDatabase from "@/src/config/db.config";
 import User from "@/src/models/user.model";
 import { authMiddleware } from "@/src/middleware/auth.middleware";
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
         await connectToDatabase()
 
@@ -18,7 +18,9 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
         if (request.method !== 'GET') return NextResponse.json({ method: 'Method not allowed', success: false }, { status: 405 })
 
-        const user = await User.findById(params.id).select('-password -refreshToken -otp');
+        const { id } = (await params);
+
+        const user = await User.findById(id).select('-password -refreshToken -otp');
 
         if (!user) return NextResponse.json({ message: "User not found.", success: false }, { status: 404 })
 

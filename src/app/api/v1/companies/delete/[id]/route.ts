@@ -4,10 +4,7 @@ import Company from "@/src/models/company.model";
 import SuperAdmin from "@/src/models/superAdmin.model";
 import { authMiddleware } from "@/src/middleware/auth.middleware";
 
-export async function DELETE(
-  request: Request,
-  context: { params: { id: string } }
-) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectToDatabase();
 
@@ -25,6 +22,8 @@ export async function DELETE(
       return NextResponse.json({ message: "You are not authorized to perform this action." }, { status: 403 });
     }
 
+    const { id: organizationId } = (await params);
+
 
     if (request.method !== "DELETE")
       return NextResponse.json(
@@ -32,15 +31,14 @@ export async function DELETE(
         { status: 405 }
       );
 
-    const { id } = context.params;
-    if (!id) {
+    if (!organizationId) {
       return NextResponse.json(
         { message: "Missing or invalid ID", success: false },
         { status: 400 }
       );
     }
 
-    const company = await Company.findById(id);
+    const company = await Company.findById(organizationId);
     if (!company) {
       return NextResponse.json(
         { message: "Company not found", success: false },
@@ -48,11 +46,11 @@ export async function DELETE(
       );
     }
 
-    const response = await Company.deleteOne({ _id: id });
+    const response = await Company.deleteOne({ _id: organizationId });
     if (response.deletedCount === 1) {
       await SuperAdmin.findOneAndUpdate(
         { _id: userId },
-        { $pull: { companies: id } }
+        { $pull: { companies: organizationId } }
       );
       return NextResponse.json(
         { message: "Company deleted successfully", success: true },
