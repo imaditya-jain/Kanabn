@@ -1,0 +1,233 @@
+Relationships Overview
+SuperAdmin manages Companies.
+Companies own Users and their data.
+Users can create, assign, and manage Tasks.
+Teams are groups of Users and are linked to Projects.
+Users log attendance and apply for leaves.
+Leave approval is routed to Manager.
+
+
+To implement your **Employee Management Dashboard**, the development flow should follow the logical sequence of dependencies between entities. Below is a step-by-step guide to help you set up the application:
+
+---
+
+### **Step 1: SuperAdmin Setup**
+1. **Create the SuperAdmin Role**:
+   - Start by defining the `SuperAdmin` model.
+   - Create a default `SuperAdmin` account during initial deployment (seed the database with credentials).
+   - Example:
+     ```javascript
+     const superAdmin = new SuperAdmin({
+       name: "Default SuperAdmin",
+       email: "admin@dashboard.com",
+       password: hashPassword("password"), // Ensure password is hashed
+     });
+     await superAdmin.save();
+     ```
+
+2. **SuperAdmin Login**:
+   - Implement a login endpoint for the `SuperAdmin` to authenticate.
+   - Once authenticated, allow access to create and manage companies.
+
+---
+
+### **Step 2: Create Company**
+1. **Define the `Company` Model**:
+   - Set up the company structure in the database.
+   - Link it with the `SuperAdmin` through the `created_by` field.
+
+2. **Company Creation by SuperAdmin**:
+   - Build an endpoint for `SuperAdmin` to create companies.
+   - Required details:
+     - Company Name
+     - Address
+   - Example Request:
+     ```json
+     POST /api/companies
+     {
+       "name": "TechCorp",
+       "address": "123 Business Lane"
+     }
+     ```
+
+3. **Return the `company_id`**:
+   - After creating a company, return its `id` to associate with future actions (like adding users).
+
+---
+
+### **Step 3: Add Users (Employees & Managers)**
+1. **Define the `User` Model**:
+   - Include fields for `role`, `manager_id` (for employees), and `company_id`.
+
+2. **User Creation**:
+   - SuperAdmin creates users (employees and managers) associated with a specific company.
+   - Example Process:
+     - Manager Creation:
+       ```json
+       POST /api/users
+       {
+         "name": "John Doe",
+         "email": "john@techcorp.com",
+         "role": "manager",
+         "company_id": "company_id_from_previous_step"
+       }
+       ```
+     - Employee Creation:
+       ```json
+       POST /api/users
+       {
+         "name": "Jane Smith",
+         "email": "jane@techcorp.com",
+         "role": "employee",
+         "manager_id": "manager_id_here",
+         "company_id": "company_id_from_previous_step"
+       }
+       ```
+
+3. **User Login and Authentication**:
+   - Implement authentication for users (employee/manager) using JWT or session-based tokens.
+
+---
+
+### **Step 4: Tasks Management**
+1. **Define the `Task` Model**:
+   - Tasks should have `assigned_to`, `created_by`, and `company_id`.
+
+2. **Task Assignment**:
+   - Implement endpoints for task creation:
+     - Admin, Manager, or Employee can create a task.
+     - Admin and Managers can assign tasks to users in the same company.
+
+3. **Example Task Creation**:
+   ```json
+   POST /api/tasks
+   {
+     "title": "Complete Report",
+     "description": "Submit by EOD",
+     "assigned_to": "employee_id",
+     "created_by": "manager_id",
+     "company_id": "company_id"
+   }
+   ```
+
+---
+
+### **Step 5: Team Management**
+1. **Define `Team` and `TeamMember` Models**:
+   - Create teams linked to companies.
+   - Assign users (employees and managers) to teams.
+
+2. **Create Teams**:
+   - Only Admin or Managers can create teams.
+
+3. **Assign Users to Teams**:
+   - Add `User` IDs to teams through the `TeamMember` table.
+
+4. **Example**:
+   ```json
+   POST /api/teams
+   {
+     "name": "Development Team",
+     "created_by": "manager_id",
+     "company_id": "company_id"
+   }
+   ```
+
+---
+
+### **Step 6: Projects Management**
+1. **Define the `Project` Model**:
+   - Link projects to teams and companies.
+
+2. **Project Creation**:
+   - Only Admin or Managers can create projects.
+
+3. **Example**:
+   ```json
+   POST /api/projects
+   {
+     "name": "New Website Launch",
+     "description": "Develop the company website",
+     "team_id": "team_id",
+     "created_by": "admin_id",
+     "company_id": "company_id"
+   }
+   ```
+
+---
+
+### **Step 7: Attendance Tracking**
+1. **Define the `Attendance` Model**:
+   - Include `check_in`, `check_out`, and `status`.
+
+2. **Employee and Manager Attendance**:
+   - Allow employees and managers to mark attendance.
+   - Example:
+     ```json
+     POST /api/attendance
+     {
+       "user_id": "employee_id",
+       "status": "present",
+       "check_in": "2024-12-06T09:00:00"
+     }
+     ```
+
+---
+
+### **Step 8: Leave Management**
+1. **Define the `Leave` Model**:
+   - Include `start_date`, `end_date`, `status`, and `manager_id`.
+
+2. **Leave Request by Employee/Manager**:
+   - Employees and managers can request leaves.
+   - Example:
+     ```json
+     POST /api/leaves
+     {
+       "user_id": "employee_id",
+       "start_date": "2024-12-10",
+       "end_date": "2024-12-12",
+       "reason": "Personal Leave"
+     }
+     ```
+
+3. **Leave Approval**:
+   - Allow managers to approve/reject leaves:
+     ```json
+     PATCH /api/leaves/{leave_id}
+     {
+       "status": "approved"
+     }
+     ```
+
+---
+
+### **Step 9: Implement Role-Based Access Control (RBAC)**
+1. **Set Up Middleware**:
+   - Use middleware to validate user roles and permissions.
+
+2. **Example Access Control**:
+   - Admin can access all routes.
+   - Managers can access routes for their teams.
+   - Employees have limited access.
+
+---
+
+### Suggested Implementation Stack:
+- **Backend**: Node.js with Express or NestJS
+- **Database**: MongoDB (with Mongoose) or SQL-based DB (PostgreSQL/MySQL)
+- **Authentication**: JWT
+- **Frontend**: React.js/Next.js for dashboard UI
+
+---
+
+### Flow Summary:
+1. Set up `SuperAdmin`.
+2. Create `Companies` via `SuperAdmin`.
+3. Add `Users` (Employees & Managers) to companies.
+4. Allow task creation and assignment.
+5. Implement team and project management.
+6. Add attendance and leave management features.
+7. Apply RBAC for access control.
+
+Would you like help with specific code snippets or database migrations?
